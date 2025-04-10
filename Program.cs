@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RangoAgilApi.DbContexts;
+using RangoAgilApi.Entitites;
 using RangoAgilApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,7 +19,11 @@ var app = builder.Build();
 
 app.MapGet("/", () => "Hello World!");
 
-app.MapGet("/rangos", async Task<Results<NoContent, Ok<IEnumerable<RangoDTO>>>> (RangoDbContext rangoDbContext, IMapper mapper, [FromQuery(Name = "name")] string? rangoNome) => {
+var rangosEndpoints = app.MapGroup("/rangos");
+var rangosComIdEndpoints = rangosEndpoints.MapGroup("/{rangoId:int}");
+var ingredientesEndpoints = rangosComIdEndpoints.MapGroup("/ingredientes");
+
+rangosEndpoints.MapGet("", async Task<Results<NoContent, Ok<IEnumerable<RangoDTO>>>> (RangoDbContext rangoDbContext, IMapper mapper, [FromQuery(Name = "name")] string? rangoNome) => {
 
     var rangosEntity = await rangoDbContext.Rangos
                                .Where(x => rangoNome == null || x.Nome.ToLower().Contains(rangoNome.ToLower()))
@@ -33,12 +38,12 @@ app.MapGet("/rangos", async Task<Results<NoContent, Ok<IEnumerable<RangoDTO>>>> 
     }
 });
 
-app.MapGet("/rango/{rangoId:int}/ingredientes", async Task<Results<NoContent, Ok<IEnumerable<IngredienteDTO>>>> (RangoDbContext rangoDbContext, IMapper mapper, int rangoId) =>
+ingredientesEndpoints.MapGet("", async Task<Results<NoContent, Ok<IEnumerable<IngredienteDTO>>>> (RangoDbContext rangoDbContext, IMapper mapper, int rangoId) =>
 {
     var rangosEntity = ((await rangoDbContext.Rangos
                                .Include(rango => rango.Ingredientes)
                                .FirstOrDefaultAsync(rango => rango.Id == rangoId))?.Ingredientes);
-    if (rangosEntity == null)
+    if (rangosEntity.Count <= 0 ||rangosEntity == null)
     {
         return TypedResults.NoContent();
     }
@@ -48,9 +53,9 @@ app.MapGet("/rango/{rangoId:int}/ingredientes", async Task<Results<NoContent, Ok
     }
 });
 
-app.MapGet("/rango/{id:int}", async Task<Results<NoContent, Ok<RangoDTO>>> (RangoDbContext rangoDbContext, IMapper mapper, int id) => {
+rangosComIdEndpoints.MapGet("", async Task<Results<NoContent, Ok<RangoDTO>>> (RangoDbContext rangoDbContext, IMapper mapper, int rangoId) => {
 
-    var rangosEntity = await rangoDbContext.Rangos.FirstOrDefaultAsync(x => x.Id == id);
+    var rangosEntity = await rangoDbContext.Rangos.FirstOrDefaultAsync(x => x.Id == rangoId);
 
     if (rangosEntity == null)
     {
@@ -60,6 +65,48 @@ app.MapGet("/rango/{id:int}", async Task<Results<NoContent, Ok<RangoDTO>>> (Rang
     {
         return TypedResults.Ok(mapper.Map<RangoDTO>(rangosEntity));
     }
+}).WithName("GetRangos");
+
+rangosEndpoints.MapPost("", async Task<CreatedAtRoute<RangoDTO>> (RangoDbContext rangoDbContext, IMapper mapper, [FromBody] RangoParaCriacaoDTO  rangoParaCriacaoDTO) =>
+{
+    var rangoEntity = mapper.Map<Rango>(rangoParaCriacaoDTO);
+    rangoDbContext.Add(rangoEntity);
+    await rangoDbContext.SaveChangesAsync();
+
+    var rangoToReturn = mapper.Map<RangoDTO>(rangoEntity);
+
+    return TypedResults.CreatedAtRoute(rangoToReturn, "GetRangos", new { rangoId = rangoToReturn.Id });
+});
+
+rangosComIdEndpoints.MapPut("", async Task<Results<NotFound, Ok>> (RangoDbContext rangoDbContext, IMapper mapper, [FromBody] RangoParaAtualizacaoDTO  rangoParaAtualizacaoDTO, int rangoId) =>
+{
+    var rangosEntity = await rangoDbContext.Rangos.FirstOrDefaultAsync(x => x.Id == rangoId);
+
+    if (rangosEntity == null)
+    {
+        return TypedResults.NotFound();
+    }
+    mapper.Map(rangoParaAtualizacaoDTO, rangosEntity);
+
+    await rangoDbContext.SaveChangesAsync();
+
+    return TypedResults.Ok();
+});
+
+rangosComIdEndpoints.MapDelete("", async Task<Results<NotFound, Ok>> (RangoDbContext rangoDbContext, int rangoId) =>
+{
+    var rangosEntity = await rangoDbContext.Rangos.FirstOrDefaultAsync(x => x.Id == rangoId);
+
+    if (rangosEntity == null)
+    {
+        return TypedResults.NotFound();
+    }
+
+    rangoDbContext.Rangos.Remove(rangosEntity);
+
+    await rangoDbContext.SaveChangesAsync();
+
+    return TypedResults.Ok();
 });
 
 app.Run();
