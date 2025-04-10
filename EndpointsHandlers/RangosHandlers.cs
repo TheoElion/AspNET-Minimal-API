@@ -44,7 +44,7 @@ public static class RangosHandlers
         }
     }
 
-    public static async Task<CreatedAtRoute<RangoDTO>> CreateRangosId(RangoDbContext rangoDbContext, IMapper mapper, [FromBody] RangoParaCriacaoDTO  rangoParaCriacaoDTO)
+    public static async Task<CreatedAtRoute<RangoDTO>> CreateRangosAsync(RangoDbContext rangoDbContext, IMapper mapper, [FromBody] RangoParaCriacaoDTO  rangoParaCriacaoDTO)
     {
         var rangoEntity = mapper.Map<Rango>(rangoParaCriacaoDTO);
         rangoDbContext.Add(rangoEntity);
