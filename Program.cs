@@ -21,11 +21,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddAuthentication().AddJwtBearer();
 builder.Services.AddAuthorization();
 
-builder.Services.AddAuthorizationBuilder()
-        .AddPolicy("RequireAdminFromBrazil", policy => 
-            policy
-                .RequireRole("admin")
-                .RequireClaim("country", "Brazil"));
+builder.Services.AddAuthorizationBuilder();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

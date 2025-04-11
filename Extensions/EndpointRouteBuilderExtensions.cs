@@ -14,7 +14,6 @@ public static class EndpointRouteBuilderExtensions
         var rangosComIdEndpoints = rangosEndpoints.MapGroup("/{rangoId:int}");
 
         var rangosComIdAndLockFilterEndpoints = endpointRouteBuilder.MapGroup("/rangos/{rangoId:int}")
-                .RequireAuthorization("RequireAdminFromBrazil")
                 .RequireAuthorization()
                 .AddEndpointFilter(new RangoIsLockedFilter(4))
                 .AddEndpointFilter(new RangoIsLockedFilter(10));
