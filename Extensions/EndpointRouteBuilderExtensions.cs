@@ -10,15 +10,16 @@ public static class EndpointRouteBuilderExtensions
     {
         endpointRouteBuilder.MapGroup("/identity/").MapIdentityApi<IdentityUser>();
 
-        var rangosEndpoints = endpointRouteBuilder.MapGroup("/rangos").RequireAuthorization();
+        var rangosEndpoints = endpointRouteBuilder.MapGroup("/rangos").AllowAnonymous();//.RequireAuthorization();
         var rangosComIdEndpoints = rangosEndpoints.MapGroup("/{rangoId:int}");
 
         var rangosComIdAndLockFilterEndpoints = endpointRouteBuilder.MapGroup("/rangos/{rangoId:int}")
-                .RequireAuthorization()
+                //.RequireAuthorization()
+                .AllowAnonymous()
                 .AddEndpointFilter(new RangoIsLockedFilter(4))
                 .AddEndpointFilter(new RangoIsLockedFilter(10));
 
-        rangosEndpoints.MapGet("", RangosHandlers.GetRangosAsync);
+        rangosEndpoints.MapGet("", RangosHandlers.GetRangosAsync);//.AllowAnonymous();
 
         rangosComIdEndpoints.MapGet("", RangosHandlers.GetRangoById).WithName("GetRangos")
                 .AllowAnonymous();

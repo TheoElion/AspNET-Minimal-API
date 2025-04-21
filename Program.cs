@@ -53,7 +53,18 @@ builder.Services.AddSwaggerGen(options =>
     );
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowBlazorDev",
+        policy => policy
+            .WithOrigins("https://localhost:7247")
+            .AllowAnyMethod()
+            .AllowAnyHeader());
+});
+
 var app = builder.Build();
+
+app.UseCors("AllowBlazorDev");
 
 if (!app.Environment.IsDevelopment())
 {
